@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TTS Voice Cloner</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {}
+            }
+        }
+    </script>
+    <style>
+        .key-f5 {
+            width: 60px;
+            height: 60px;
+            background-color: #e0e0e0;
+            border: 2px solid #a0a0a0;
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            font-weight: bold;
+            color: #333;
+            text-shadow: 0 1px 0 #fff;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2), inset 0 1px 0 #fff;
+            transition: all 0.1s ease;
+        }
+        .key-f5:active {
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
+            transform: translateY(2px);
+        }
+        .dark .key-f5 {
+            background-color: #444;
+            border-color: #666;
+            color: #fff;
+            text-shadow: 0 1px 0 #000;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.4), inset 0 1px 0 #666;
+        }
+        .dark .key-f5:active {
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.3);
+        }
+    </style>
+</head>
+<body class="min-h-screen bg-gray-50 dark:bg-black text-gray-900 dark:text-gray-100 transition-colors duration-300">
+    <div class="container mx-auto p-6 max-w-6xl">
+        <div class="flex justify-between items-center mb-6">
+            <div class="flex items-center space-x-4">
+                <div class="key-f5">F5</div>
+                <span class="text-3xl font-bold">TTS</span>
+            </div>
+            <div class="flex items-center space-x-2">
+                <i data-lucide="sun" class="h-4 w-4"></i>
+                <label class="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" value="" class="sr-only peer" id="darkModeToggle">
+                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                </label>
+                <i data-lucide="moon" class="h-4 w-4"></i>
+            </div>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Audio Upload and Record Section -->
+            <div class="col-span-full bg-white dark:bg-black p-6 rounded-lg shadow-md dark:ring-1 dark:ring-white/50">
+                <h2 class="text-xl font-semibold mb-4">Reference Audio</h2>
+                <div class="mb-4">
+                    <div class="flex items-center justify-center w-full">
+                        <label for="audio-upload" class="flex flex-col items-center justify-center w-full h-64 border-2 border-gray-300 dark:border-gray-600 border-dashed rounded-lg cursor-pointer bg-gray-50 dark:bg-[#141415] hover:bg-gray-100 dark:hover:bg-[#1c1c1d]">
+                            <div class="flex flex-col items-center justify-center pt-5 pb-6">
+                                <i data-lucide="upload" class="w-10 h-10 mb-3 text-gray-400"></i>
+                                <p class="mb-2 text-sm text-gray-500 dark:text-gray-400"><span class="font-semibold">Click to upload</span> or drag and drop</p>
+                                <p class="text-xs text-gray-500 dark:text-gray-400">WAV or MP3 (MAX. 10MB)</p>
+                            </div>
+                            <input id="audio-upload" type="file" class="hidden" accept="audio/*">
+                        </label>
+                    </div>
+                </div>
+                <div id="audioFileInfo" class="mt-4 hidden">
+                    <h3 class="text-lg font-medium mb-2">Audio: <span id="audioFileName"></span></h3>
+                    <canvas id="referenceWaveform" class="w-full h-32 bg-gray-200 dark:bg-gray-800 rounded-lg mb-2"></canvas>
+                    <button id="playPauseButton" class="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded">
+                        <i data-lucide="play" class="inline mr-2"></i> Play
+                    </button>
+                </div>
+            </div>
+
+            <!-- Reference Text and Prompt Section -->
+            <div class="bg-white dark:bg-black p-6 rounded-lg shadow-md dark:ring-1 dark:ring-white/50">
+                <h2 class="text-xl font-semibold mb-4 flex items-center">
+                    Reference Text
+                    <span id="transcriptionStatus" class="ml-2 text-sm text-gray-500 hidden">
+                        <svg class="animate-spin h-5 w-5 mr-2 inline" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Transcribing audio...
+                    </span>
+                </h2>
+                <textarea id="referenceText" placeholder="Enter the reference text here..." class="w-full h-40 mb-4 p-2 border rounded bg-white dark:bg-[#141415]"></textarea>
+                <h2 class="text-xl font-semibold mb-4">Prompt</h2>
+                <textarea id="promptText" placeholder="Enter your prompt here..." class="w-full h-40 p-2 border rounded bg-white dark:bg-[#141415]"></textarea>
+            </div>
+
+            <!-- Model Selector Section -->
+            <div class="bg-white dark:bg-black p-6 rounded-lg shadow-md dark:ring-1 dark:ring-white/50">
+                <h2 class="text-xl font-semibold mb-4">Select Model</h2>
+                <div class="flex flex-col space-y-2">
+                    <label class="inline-flex items-center">
+                        <input type="radio" class="form-radio" name="model" value="f5-tts" checked>
+                        <span class="ml-2">F5-TTS</span>
+                    </label>
+                    <label class="inline-flex items-center">
+                        <input type="radio" class="form-radio" name="model" value="e2-tts">
+                        <span class="ml-2">E2-TTS</span>
+                    </label>
+                </div>
+                <button id="generateAudioButton" class="mt-4 w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded">Generate Audio</button>
+            </div>
+
+            <!-- Inferenced Audio Section -->
+            <div class="col-span-full bg-white dark:bg-black p-6 rounded-lg shadow-md dark:ring-1 dark:ring-white/50">
+                <h2 class="text-xl font-semibold mb-4">Inferenced Audio</h2>
+                <canvas id="inferencedWaveform" class="w-full h-40 bg-gray-200 dark:bg-gray-800 rounded-lg mb-4"></canvas>
+                <div class="flex items-center">
+                    <button id="playInferencedButton" class="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded" disabled>
+                        <i data-lucide="play" class="inline mr-2"></i> Play Inferenced Audio
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+
+        // Dark mode toggle
+        const darkModeToggle = document.getElementById('darkModeToggle');
+        const htmlElement = document.documentElement;
+
+        // Initialize dark mode
+        if (localStorage.getItem('darkMode') === 'true') {
+            htmlElement.classList.add('dark');
+            darkModeToggle.checked = true;
+        }
+
+        darkModeToggle.addEventListener('change', function() {
+            if (this.checked) {
+                htmlElement.classList.add('dark');
+                localStorage.setItem('darkMode', 'true');
+            } else {
+                htmlElement.classList.remove('dark');
+                localStorage.setItem('darkMode', 'false');
+            }
+        });
+
+        // Audio processing and visualization
+        let audioContext;
+        let referenceAudioSource;
+        let inferencedAudioSource;
+
+        function initAudioContext() {
+            audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        }
+
+        function createWaveform(audioBuffer, canvasId) {
+            const canvas = document.getElementById(canvasId);
+            const ctx = canvas.getContext('2d');
+
+            // Set canvas size to match its display size
+            const rect = canvas.getBoundingClientRect();
+            const dpr = window.devicePixelRatio || 1;
+            canvas.width = rect.width * dpr;
+            canvas.height = rect.height * dpr;
+
+            // Scale the context to ensure correct drawing operations
+            ctx.scale(dpr, dpr);
+
+            // Set the CSS size to match the display size
+            canvas.style.width = `${rect.width}px`;
+            canvas.style.height = `${rect.height}px`;
+
+            const data = audioBuffer.getChannelData(0);
+            const step = Math.ceil(data.length / rect.width);
+            const amp = rect.height / 2;
+
+            ctx.fillStyle = '#141415'; // Dark background for dark mode
+            ctx.fillRect(0, 0, rect.width, rect.height);
+
+            const pillWidth = 3;
+            const pillGap = 1;
+            const pillsCount = Math.floor(rect.width / (pillWidth + pillGap));
+
+            const waveformData = [];
+
+            for (let i = 0; i < pillsCount; i++) {
+                let min = 1.0;
+                let max = -1.0;
+                for (let j = 0; j < step; j++) {
+                    const datum = data[(i * step) + j];
+                    if (datum < min) min = datum;
+                    if (datum > max) max = datum;
+                }
+                const height = Math.max(2, (max - min) * amp);
+                const x = i * (pillWidth + pillGap);
+                const y = (rect.height - height) / 2;
+
+                waveformData.push({ x, y, height });
+            }
+
+            drawWaveform(ctx, waveformData, pillWidth, '#d1d5db');
+
+            return { pillsCount, pillWidth, pillGap, waveformData, canvasWidth: rect.width, canvasHeight: rect.height };
+        }
+
+        function drawWaveform(ctx, waveformData, pillWidth, color) {
+            ctx.fillStyle = color;
+            waveformData.forEach(({ x, y, height }) => {
+                ctx.beginPath();
+                ctx.moveTo(x, y + height / 2);
+                ctx.arcTo(x, y, x + pillWidth, y, pillWidth / 2);
+                ctx.arcTo(x + pillWidth, y, x + pillWidth, y + height, pillWidth / 2);
+                ctx.arcTo(x + pillWidth, y + height, x, y + height, pillWidth / 2);
+                ctx.arcTo(x, y + height, x, y, pillWidth / 2);
+                ctx.fill();
+            });
+        }
+
+        function updateWaveformProgress(canvasId, progress, waveformInfo) {
+            const canvas = document.getElementById(canvasId);
+            const ctx = canvas.getContext('2d');
+            const { pillWidth, waveformData, canvasWidth, canvasHeight } = waveformInfo;
+
+            // Clear the canvas
+            ctx.fillStyle = '#141415'; // Dark background for dark mode
+            ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+
+            // Draw the entire waveform in grey
+            drawWaveform(ctx, waveformData, pillWidth, '#d1d5db');
+
+            // Draw the progress
+            const progressWidth = canvasWidth * progress;
+            ctx.save();
+            ctx.beginPath();
+            ctx.rect(0, 0, progressWidth, canvasHeight);
+            ctx.clip();
+            drawWaveform(ctx, waveformData, pillWidth, 'rgb(255, 140, 0)');
+            ctx.restore();
+        }
+
+        let startTime;
+        let isPlaying = false;
+        let currentAudioSource;
+        let currentAudioBuffer;
+        let currentWaveformInfo;
+
+        // File upload handling
+        const audioUploadInput = document.getElementById('audio-upload');
+        const audioFileInfo = document.getElementById('audioFileInfo');
+        const audioFileName = document.getElementById('audioFileName');
+        const playPauseButton = document.getElementById('playPauseButton');
+
+        function uploadReferenceAudio(file) {
+            const formData = new FormData();
+            formData.append('audio', file);
+
+            // Show transcription status
+            document.getElementById('transcriptionStatus').classList.remove('hidden');
+
+            fetch('/upload_audio', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log(data);
+                if (data.transcription) {
+                    document.getElementById('referenceText').value = data.transcription;
+                } else if (data.error) {
+                    console.error('Transcription error:', data.error);
+                    alert('Transcription failed: ' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred during transcription: ' + error.message);
+            })
+            .finally(() => {
+                // Hide transcription status
+                document.getElementById('transcriptionStatus').classList.add('hidden');
+            });
+        }
+
+        audioUploadInput.addEventListener('change', function(event) {
+            const file = event.target.files[0];
+            if (file) {
+                audioFileName.textContent = file.name;
+                audioFileInfo.classList.remove('hidden');
+
+                // Upload the audio file and get the transcription
+                uploadReferenceAudio(file);
+
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    if (!audioContext) {
+                        initAudioContext();
+                    }
+                    audioContext.decodeAudioData(e.target.result, function(buffer) {
+                        currentAudioBuffer = buffer;
+                        currentWaveformInfo = createWaveform(buffer, 'referenceWaveform');
+                    });
+                };
+                reader.readAsArrayBuffer(file);
+            }
+        });
+
+        playPauseButton.addEventListener('click', function() {
+            if (!audioContext) {
+                initAudioContext();
+            }
+
+            if (!isPlaying) {
+                if (currentAudioBuffer) {
+                    currentAudioSource = audioContext.createBufferSource();
+                    currentAudioSource.buffer = currentAudioBuffer;
+                    currentAudioSource.connect(audioContext.destination);
+                    currentAudioSource.start(0);
+                    startTime = audioContext.currentTime;
+                    isPlaying = true;
+                    this.innerHTML = '<i data-lucide="pause" class="inline mr-2"></i> Pause';
+
+                    function updateProgress() {
+                        if (isPlaying) {
+                            const progress = (audioContext.currentTime - startTime) / currentAudioBuffer.duration;
+                            updateWaveformProgress('referenceWaveform', progress, currentWaveformInfo);
+                            if (progress < 1) {
+                                requestAnimationFrame(updateProgress);
+                            } else {
+                                isPlaying = false;
+                                playPauseButton.innerHTML = '<i data-lucide="play" class="inline mr-2"></i> Play';
+                                lucide.createIcons();
+                            }
+                        }
+                    }
+                    updateProgress();
+                }
+            } else {
+                if (currentAudioSource) {
+                    currentAudioSource.stop();
+                }
+                isPlaying = false;
+                this.innerHTML = '<i data-lucide="play" class="inline mr-2"></i> Play';
+                // Reset the waveform to its initial state
+                updateWaveformProgress('referenceWaveform', 0, currentWaveformInfo);
+            }
+            lucide.createIcons();
+        });
+
+        // Inferenced audio player
+        const playInferencedButton = document.getElementById('playInferencedButton');
+        let inferencedAudioBuffer;
+
+        function loadInferencedAudio(url) {
+            fetch(url)
+                .then(response => response.arrayBuffer())
+                .then(arrayBuffer => audioContext.decodeAudioData(arrayBuffer))
+                .then(audioBuffer => {
+                    inferencedAudioBuffer = audioBuffer;
+                    createWaveform(audioBuffer, 'inferencedWaveform');
+                    playInferencedButton.disabled = false;
+                });
+        }
+
+        playInferencedButton.addEventListener('click', function() {
+            if (!audioContext) {
+                initAudioContext();
+            }
+
+            if (inferencedAudioBuffer) {
+                const source = audioContext.createBufferSource();
+                source.buffer = inferencedAudioBuffer;
+                source.connect(audioContext.destination);
+                source.start(0);
+            }
+        });
+
+        function generateAudio() {
+            const refText = document.getElementById('referenceText').value;
+            const prompt = document.getElementById('promptText').value;
+            const model = document.querySelector('input[name="model"]:checked').value;
+            const audioFilename = document.getElementById('audioFileName').textContent;  // Add this line
+            const generateButton = document.getElementById('generateAudioButton');
+
+            generateButton.disabled = true;
+            generateButton.textContent = 'Generating...';
+            playInferencedButton.disabled = true;
+
+            fetch('/generate_audio', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    ref_text: refText,
+                    prompt: prompt,
+                    model: model,
+                    audio_filename: audioFilename  // Add this line
+                })
+            })
+            .then(response => response.blob())
+            .then(blob => {
+                const url = URL.createObjectURL(blob);
+                loadInferencedAudio(url);
+                generateButton.disabled = false;
+                generateButton.textContent = 'Generate Audio';
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                generateButton.disabled = false;
+                generateButton.textContent = 'Generate Audio';
+                playInferencedButton.disabled = true;
+            });
+        }
+
+        document.getElementById('generateAudioButton').addEventListener('click', generateAudio);
+    </script>
+</body>
+</html>
