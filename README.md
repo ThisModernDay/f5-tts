@@ -1,6 +1,6 @@
-# TTS Voice Cloner
+# F5-TTS
 
-TTS Voice Cloner is a web application that allows users to clone voices and generate text-to-speech audio using advanced AI models.
+F5-TTS is a web application that allows users to clone voices and generate text-to-speech audio using advanced AI models.
 
 ## Features
 
@@ -31,8 +31,8 @@ For optimal results, it's recommended to use reference audio within the 1-25 sec
    cd f5-tts   ```
 
 2. Create and activate a new Conda environment with Python 3.10:   ```
-   conda create -n tts-voice-cloner python=3.10
-   conda activate tts-voice-cloner   ```
+   conda create -n f5-tts python=3.10
+   conda activate f5-tts   ```
 
 3. Install the required packages:   ```
    pip install -r requirements.txt   ```
