@@ -10,6 +10,12 @@ F5-TTS is a web application that allows users to clone voices and generate text-
 - Custom prompt input for generated speech
 - Audio playback and download
 
+## Interface
+
+![F5-TTS Interface](images\ui.png)
+
+The F5-TTS interface provides an intuitive way to upload reference audio, visualize the waveform, and generate new speech based on the cloned voice.
+
 ## Technologies Used
 
 - Backend: Python, Flask
