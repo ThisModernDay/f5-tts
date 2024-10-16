@@ -7,7 +7,8 @@ einx>=0.3.0
 ema_pytorch>=0.5.2
 faster_whisper
 funasr
-gradio
+flask
+flask-cors
 jieba
 jiwer
 librosa
