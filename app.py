@@ -63,7 +63,7 @@ device = (
 )
 
 # Remove the lazy loading functions and initialize directly
-whisper_model = WhisperModel("base", device="cpu", compute_type="int8")
+whisper_model = WhisperModel("large", device=device, compute_type="int8")
 vocos = Vocos.from_pretrained("charactr/vocos-mel-24khz")
 
 # Add this near the top of the file, after other imports
@@ -122,25 +122,47 @@ def upload_audio():
     if audio_file:
         logger.info(f"Processing audio file: {audio_file.filename}")
         try:
-            # Save the file to the data folder
-            filename = os.path.join(UPLOAD_FOLDER, audio_file.filename)
-            audio_file.save(filename)
-            logger.info(f"Audio file saved as: {filename}")
+            # Save the file to a temporary location
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as temp_file:
+                audio_file.save(temp_file.name)
+                temp_filename = temp_file.name
+
+            logger.info(f"Temporary audio file saved as: {temp_filename}")
+
+            # Load the audio file
+            audio, sr = librosa.load(temp_filename, sr=None)
+
+            # Trim silence from the beginning and end
+            trimmed_audio, _ = librosa.effects.trim(audio, top_db=20)
+
+            # If the audio is longer than 15 seconds, clip it
+            max_duration = 15  # seconds
+            if len(trimmed_audio) > max_duration * sr:
+                trimmed_audio = trimmed_audio[:max_duration * sr]
+
+            # Save the processed audio
+            processed_filename = os.path.join(UPLOAD_FOLDER, audio_file.filename)
+            sf.write(processed_filename, trimmed_audio, sr)
+
+            logger.info(f"Processed audio file saved as: {processed_filename}")
 
             logger.info("Starting transcription with faster-whisper")
-            # Transcribe the saved audio file
-            segments, info = whisper_model.transcribe(filename)
+            # Transcribe the processed audio file
+            segments, info = whisper_model.transcribe(processed_filename)
             logger.info(f"Transcription info: {info}")
 
             transcription = " ".join([segment.text for segment in segments])
             logger.info(f"Transcription completed. Length: {len(transcription)} characters")
             logger.debug(f"Transcription text: {transcription}")
 
-            return jsonify({"message": "Audio uploaded successfully", "transcription": transcription}), 200
+            # Clean up the temporary file
+            os.unlink(temp_filename)
+
+            return jsonify({"message": "Audio uploaded and processed successfully", "transcription": transcription}), 200
         except Exception as e:
-            logger.error(f"Transcription failed: {str(e)}")
+            logger.error(f"Audio processing or transcription failed: {str(e)}")
             logger.error(traceback.format_exc())
-            return jsonify({"error": f"Transcription failed: {str(e)}"}), 500
+            return jsonify({"error": f"Audio processing or transcription failed: {str(e)}"}), 500
 
     return jsonify({"error": "Unknown error occurred"}), 500
 

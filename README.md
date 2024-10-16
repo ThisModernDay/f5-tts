@@ -1,196 +1,62 @@
-# F5-TTS: A Fairytaler that Fakes Fluent and Faithful Speech with Flow Matching
+# TTS Voice Cloner
 
-[![python](https://img.shields.io/badge/Python-3.10-brightgreen)](https://github.com/SWivid/F5-TTS)
-[![arXiv](https://img.shields.io/badge/arXiv-2410.06885-b31b1b.svg?logo=arXiv)](https://arxiv.org/abs/2410.06885)
-[![demo](https://img.shields.io/badge/GitHub-Demo%20page-blue.svg)](https://swivid.github.io/F5-TTS/)
-[![space](https://img.shields.io/badge/🤗-Space%20demo-yellow)](https://huggingface.co/spaces/mrfakename/E2-F5-TTS)
+TTS Voice Cloner is a web application that allows users to clone voices and generate text-to-speech audio using advanced AI models.
 
-**F5-TTS**: Diffusion Transformer with ConvNeXt V2, faster trained and inference.
+## Features
 
-**E2 TTS**: Flat-UNet Transformer, closest reproduction.
+- Upload and process reference audio
+- Automatic transcription of reference audio
+- Text-to-speech generation using F5-TTS or E2-TTS models
+- Custom prompt input for generated speech
+- Audio playback and download
 
-**Sway Sampling**: Inference-time flow step sampling strategy, greatly improves performance
+## Technologies Used
 
-## Installation
+- Backend: Python, Flask
+- Frontend: HTML, JavaScript, Tailwind CSS
+- AI Models: F5-TTS, E2-TTS
+- Audio Processing: librosa, soundfile, pydub
+- Transcription: faster-whisper
 
-Clone the repository:
+## Audio Clip Size and Performance
 
-```bash
-git clone https://github.com/SWivid/F5-TTS.git
-cd F5-TTS
-```
+The application supports reference audio clips ranging from 1 second to 25 seconds in length. This range is optimized for the best performance of the F5-TTS and E2-TTS models. While users can use longer audio clips, the results may not be as desirable or consistent.
 
-Install torch with your CUDA version, e.g. :
+For optimal results, it's recommended to use reference audio within the 1-25 second range. The application includes functionality to process longer audio files, but users should be aware that exceeding the recommended length might impact the quality of the voice cloning and generated speech.
 
-```bash
-pip install torch==2.3.0+cu118 --extra-index-url https://download.pytorch.org/whl/cu118
-pip install torchaudio==2.3.0+cu118 --extra-index-url https://download.pytorch.org/whl/cu118
-```
+## Setup and Installation
 
-Install other packages:
+1. Clone the repository:   ```
+   git clone https://github.com/ThisModernDay/f5-tts.git
+   cd f5-tts   ```
 
-```bash
-pip install -r requirements.txt
-```
+2. Create and activate a new Conda environment with Python 3.10:   ```
+   conda create -n tts-voice-cloner python=3.10
+   conda activate tts-voice-cloner   ```
 
-## Prepare Dataset
+3. Install the required packages:   ```
+   pip install -r requirements.txt   ```
 
-Example data processing scripts for Emilia and Wenetspeech4TTS, and you may tailor your own one along with a Dataset class in `model/dataset.py`.
+4. Set up the environment variables (if necessary).
 
-```bash
-# prepare custom dataset up to your need
-# download corresponding dataset first, and fill in the path in scripts
+5. Run the Flask application:   ```
+   python app.py   ```
 
-# Prepare the Emilia dataset
-python scripts/prepare_emilia.py
+6. Open a web browser and navigate to `http://localhost:5000`.
 
-# Prepare the Wenetspeech4TTS dataset
-python scripts/prepare_wenetspeech4tts.py
-```
+## Usage
 
-## Training
+1. Upload a reference audio file (WAV or MP3, ideally between 1-25 seconds).
+2. The application will automatically transcribe the audio.
+3. Enter your desired prompt text.
+4. Choose between F5-TTS and E2-TTS models.
+5. Click "Generate Audio" to create the cloned voice audio.
+6. Play the generated audio or download it.
 
-Once your datasets are prepared, you can start the training process.
+## Contributing
 
-```bash
-# setup accelerate config, e.g. use multi-gpu ddp, fp16
-# will be to: ~/.cache/huggingface/accelerate/default_config.yaml     
-accelerate config
-accelerate launch train.py
-```
-An initial guidance on Finetuning [#57](https://github.com/SWivid/F5-TTS/discussions/57).
+Contributions are welcome! Please feel free to submit a Pull Request.
 
-## Inference
-
-To run inference with pretrained models, download the checkpoints from [🤗 Hugging Face](https://huggingface.co/SWivid/F5-TTS), or automatically downloaded with `inference-cli` and `gradio_app`.
-
-Currently support 30s for a single generation, which is the **TOTAL** length of prompt audio and the generated. Batch inference with chunks is supported by `inference-cli` and `gradio_app`. 
-- To avoid possible inference failures, make sure you have seen through the following instructions.
-- A longer prompt audio allows shorter generated output. The part longer than 30s cannot be generated properly. Consider using a prompt audio <15s.
-- Uppercased letters will be uttered letter by letter, so use lowercased letters for normal words. 
-- Add some spaces (blank: " ") or punctuations (e.g. "," ".") to explicitly introduce some pauses. If first few words skipped in code-switched generation (cuz different speed with different languages), this might help.
-
-### CLI Inference
-
-Either you can specify everything in `inference-cli.toml` or override with flags. Leave `--ref_text ""` will have ASR model transcribe the reference audio automatically (use extra GPU memory). If encounter network error, consider use local ckpt, just set `ckpt_path` in `inference-cli.py`
-
-```bash
-python inference-cli.py \
---model "F5-TTS" \
---ref_audio "tests/ref_audio/test_en_1_ref_short.wav" \
---ref_text "Some call me nature, others call me mother nature." \
---gen_text "I don't really care what you call me. I've been a silent spectator, watching species evolve, empires rise and fall. But always remember, I am mighty and enduring. Respect me and I'll nurture you; ignore me and you shall face the consequences."
-
-python inference-cli.py \
---model "E2-TTS" \
---ref_audio "tests/ref_audio/test_zh_1_ref_short.wav" \
---ref_text "对，这就是我，万人敬仰的太乙真人。" \
---gen_text "突然，身边一阵笑声。我看着他们，意气风发地挺直了胸膛，甩了甩那稍显肉感的双臂，轻笑道，我身上的肉，是为了掩饰我爆棚的魅力，否则，岂不吓坏了你们呢？"
-```
-
-### Gradio App
-Currently supported features:
-- Chunk inference
-- Podcast Generation
-- Multiple Speech-Type Generation
-
-You can launch a Gradio app (web interface) to launch a GUI for inference (will load ckpt from Huggingface, you may set `ckpt_path` to local file in `gradio_app.py`). Currently load ASR model, F5-TTS and E2 TTS all in once, thus use more GPU memory than `inference-cli`.
-
-```bash
-python gradio_app.py
-```
-
-You can specify the port/host:
-
-```bash
-python gradio_app.py --port 7860 --host 0.0.0.0
-```
-
-Or launch a share link:
-
-```bash
-python gradio_app.py --share
-```
-
-### Speech Editing
-
-To test speech editing capabilities, use the following command.
-
-```bash
-python speech_edit.py
-```
-
-## Evaluation
-
-### Prepare Test Datasets
-
-1. Seed-TTS test set: Download from [seed-tts-eval](https://github.com/BytedanceSpeech/seed-tts-eval).
-2. LibriSpeech test-clean: Download from [OpenSLR](http://www.openslr.org/12/).
-3. Unzip the downloaded datasets and place them in the data/ directory.
-4. Update the path for the test-clean data in `scripts/eval_infer_batch.py`
-5. Our filtered LibriSpeech-PC 4-10s subset is already under data/ in this repo
-
-### Batch Inference for Test Set
-
-To run batch inference for evaluations, execute the following commands:
-
-```bash
-# batch inference for evaluations
-accelerate config  # if not set before
-bash scripts/eval_infer_batch.sh
-```
-
-### Download Evaluation Model Checkpoints
-
-1. Chinese ASR Model: [Paraformer-zh](https://huggingface.co/funasr/paraformer-zh)
-2. English ASR Model: [Faster-Whisper](https://huggingface.co/Systran/faster-whisper-large-v3)
-3. WavLM Model: Download from [Google Drive](https://drive.google.com/file/d/1-aE1NfzpRCLxA4GUxX9ITI3F9LlbtEGP/view).
-
-### Objective Evaluation
-
-**Some Notes**
-
-For faster-whisper with CUDA 11:
-
-```bash
-pip install --force-reinstall ctranslate2==3.24.0
-```
-
-(Recommended) To avoid possible ASR failures, such as abnormal repetitions in output:
-
-```bash
-pip install faster-whisper==0.10.1
-```
-
-Update the path with your batch-inferenced results, and carry out WER / SIM evaluations:
-```bash
-# Evaluation for Seed-TTS test set
-python scripts/eval_seedtts_testset.py
-
-# Evaluation for LibriSpeech-PC test-clean (cross-sentence)
-python scripts/eval_librispeech_test_clean.py
-```
-
-## Acknowledgements
-
-- [E2-TTS](https://arxiv.org/abs/2406.18009) brilliant work, simple and effective
-- [Emilia](https://arxiv.org/abs/2407.05361), [WenetSpeech4TTS](https://arxiv.org/abs/2406.05763) valuable datasets
-- [lucidrains](https://github.com/lucidrains) initial CFM structure with also [bfs18](https://github.com/bfs18) for discussion
-- [SD3](https://arxiv.org/abs/2403.03206) & [Hugging Face diffusers](https://github.com/huggingface/diffusers) DiT and MMDiT code structure
-- [torchdiffeq](https://github.com/rtqichen/torchdiffeq) as ODE solver, [Vocos](https://huggingface.co/charactr/vocos-mel-24khz) as vocoder
-- [mrfakename](https://x.com/realmrfakename) huggingface space demo ~
-- [FunASR](https://github.com/modelscope/FunASR), [faster-whisper](https://github.com/SYSTRAN/faster-whisper), [UniSpeech](https://github.com/microsoft/UniSpeech) for evaluation tools
-- [ctc-forced-aligner](https://github.com/MahmoudAshraf97/ctc-forced-aligner) for speech edit test
-
-## Citation
-```
-@article{chen-etal-2024-f5tts,
-      title={F5-TTS: A Fairytaler that Fakes Fluent and Faithful Speech with Flow Matching}, 
-      author={Yushen Chen and Zhikang Niu and Ziyang Ma and Keqi Deng and Chunhui Wang and Jian Zhao and Kai Yu and Xie Chen},
-      journal={arXiv preprint arXiv:2410.06885},
-      year={2024},
-}
-```
 ## License
 
-Our code is released under MIT License.
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
